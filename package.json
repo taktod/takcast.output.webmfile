@@ -1,0 +1,23 @@
+{
+  "name": "@takcast/webmfile",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "tsbuild": "tsc --project ."
+  },
+  "author": "taktod",
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "@types/electron": "^1.4.38",
+    "@types/node": "^7.0.22",
+    "@types/react": "^15.0.25",
+    "@types/react-bootstrap": "0.0.49",
+    "@types/react-dom": "^15.5.0",
+    "takcast.interface": "github:taktod/takcast.interface",
+    "typescript": "^2.3.3"
+  },
+  "dependencies": {
+    "electron": "^1.6.10"
+  }
+}
