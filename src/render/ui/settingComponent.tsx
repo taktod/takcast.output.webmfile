@@ -70,8 +70,6 @@ export var settingComponent = (webmFile:WebmFile):any => {
           <div>
             <Navbar.Text>
               <Button onClick={this.file}><span className="glyphicon glyphicon-folder-open" aria-hidden="true"></span></Button>
-            </Navbar.Text>
-            <Navbar.Text>
               <Button onClick={this.toggleSave} active={this.state.recording == true}><span className="glyphicon glyphicon-save" aria-hidden="true"></span></Button>
             </Navbar.Text>
             <Navbar.Text>
