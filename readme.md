@@ -18,7 +18,7 @@ webmとしてファイル保存するプラグイン
 takcastのプロジェクトで
 
 ```
-$ npm install taktod/takcast.output.webmfile
+$ npm install taktod/takcast.output.webmfile --save
 $ npm run setup
 ```
 
