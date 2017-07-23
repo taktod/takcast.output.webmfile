@@ -9,7 +9,7 @@ import { IPlugin } from "takcast.interface";
 import { IOutputPlugin } from "takcast.interface";
 import { IMediaPlugin } from "takcast.interface";
 export interface SaveEventListener {
-    onStop(): any;
+    onStop(genFile: string): any;
     onProcess(info: any): any;
 }
 export declare class WebmFile implements IOutputPlugin {
@@ -22,6 +22,7 @@ export declare class WebmFile implements IOutputPlugin {
     private basePlugin;
     private startTime;
     private saveSize;
+    private data;
     constructor();
     setPlugins(plugins: {
         [key: string]: Array<IPlugin>;

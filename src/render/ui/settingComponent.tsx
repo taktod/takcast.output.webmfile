@@ -12,7 +12,10 @@ var Navbar = ReactBootstrap.Navbar;
 var Button = ReactBootstrap.Button;
 
 import * as electron from "electron";
-var dialog = electron.remote.dialog;
+var dialog = null;
+if(electron) {
+  dialog = electron.remote.dialog;
+}
 
 // 出力の部分にある保存動作のGUI処理
 export var settingComponent = (webmFile:WebmFile):any => {
@@ -25,25 +28,30 @@ export var settingComponent = (webmFile:WebmFile):any => {
     }
     private file() {
       // ファイル選択ダイアログ処理
-      dialog.showSaveDialog(
-        null,
-        {
-          title: "save",
-          defaultPath: ".",
-          filters: [
-            {name: "webm movie file", extensions: ["webm"]}
-          ]
-        },
-        (filename) => {
-          // ここにデータを保存する
-          // 保存してたら、停止する
-          if(!filename) {
-            return;
+      if(location.protocol.match(/^http/)) {
+        alert("ファイル保存動作はstandaloneでのみ動作します。");
+      }
+      else {
+        dialog.showSaveDialog(
+          null,
+          {
+            title: "save",
+            defaultPath: ".",
+            filters: [
+              {name: "webm movie file", extensions: ["webm"]}
+            ]
+          },
+          (filename) => {
+            // ここにデータを保存する
+            // 保存してたら、停止する
+            if(!filename) {
+              return;
+            }
+            webmFile._finishRecording();
+            this.setState({file: filename});
           }
-          webmFile._finishRecording();
-          this.setState({file: filename});
-        }
-      )
+        )
+      }
     }
     private toggleSave() {
       // 保存ボタンがおされたときの処理
@@ -61,8 +69,8 @@ export var settingComponent = (webmFile:WebmFile):any => {
       // 更新情報がきたので、更新しなければならない
       this.setState(info);
     }
-    public onStop() {
-      this.setState({file: "", recording: false});
+    public onStop(genAddress) {
+      this.setState({file: genAddress, recording: false});
     }
     public render() {
       return (
@@ -75,12 +83,23 @@ export var settingComponent = (webmFile:WebmFile):any => {
             <Navbar.Text>
               {((file) => {
                 // ファイル名を表示する
-                var matches = file.match(/[^/]+$/);
-                if(matches != null && matches.length > 0) {
-                  return matches[0];
+                if(location.protocol.match(/^http/)) {
+                  if(file == "") {
+                    return "";
+                  }
+                  else {
+                    // downloadのリンクを出す動作
+                    return <a href={file} target="_blank">download {file}</a>
+                  }
                 }
                 else {
-                  return "";
+                  var matches = file.match(/[^/]+$/);
+                  if(matches != null && matches.length > 0) {
+                    return matches[0];
+                  }
+                  else {
+                    return "";
+                  }
                 }
               })(this.state.file)}
               <br />

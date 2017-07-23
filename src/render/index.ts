@@ -13,11 +13,14 @@ import {IBasePlugin} from "takcast.interface";
 import {settingComponent} from "./ui/settingComponent";
 
 import * as electron from "electron";
-var ipcRenderer = electron.ipcRenderer;
+var ipcRenderer = null;
+if(electron) {
+  ipcRenderer = electron.ipcRenderer;
+}
 
 export interface SaveEventListener {
   // 停止した時の処理
-  onStop();
+  onStop(genFile:string);
   // 処理情報を通知しておく
   onProcess(info);
 }
@@ -42,6 +45,9 @@ export class WebmFile implements IOutputPlugin {
   private basePlugin:IBasePlugin;
   private startTime:number;
   private saveSize:number;
+
+  private data:Array<Blob>;
+
   constructor() {
     this.activeMedia = null;
     this.targetMedia = null;
@@ -51,6 +57,7 @@ export class WebmFile implements IOutputPlugin {
 //    this.node = null;
     this.startTime = 0;
     this.saveSize = 0;
+    this.data = [];
   }
   public setPlugins(plugins:{[key:string]:Array<IPlugin>}):void {
     this.basePlugin = plugins["base"][0] as IBasePlugin;
@@ -90,9 +97,13 @@ export class WebmFile implements IOutputPlugin {
       this._finishRecording();
       return false;
     }
-    if(!filename || filename.length <= 0) {
-      alert("ファイル名が設定されていません");
-      return false;
+    if(location.protocol.match(/^http/)) {
+    }
+    else {
+      if(!filename || filename.length <= 0) {
+        alert("ファイル名が設定されていません");
+        return false;
+      }
     }
     this.targetMedia = this.activeMedia;
     var stream = new MediaStream();
@@ -109,28 +120,53 @@ export class WebmFile implements IOutputPlugin {
     if(this.recorder) {
       this.recorder.stop();
     }
-    // ファイル名を送っておく。
-    ipcRenderer.send(this.name + "setFile", filename);
+    if(location.protocol.match(/^http/)) {
+      this.data = []; // blobを初期化
+    }
+    else {
+      // ファイル名を送っておく。
+      ipcRenderer.send(this.name + "setFile", filename);
+    }
     // 開始時刻、録画データサイズをクリア
     this.startTime = new Date().getTime();
     this.saveSize = 0;
     // recorder作成
-    this.recorder = new MediaRecorder(stream, {
-      mimeType: "video/webm; codecs=vp9,opus",
-      videoBitsPerSecond: 600000,
-      audioBitsPerSecond: 64000
-    });
+    try {
+      this.recorder = new MediaRecorder(stream, {
+        mimeType: "video/webm; codecs=vp9,opus",
+        videoBitsPerSecond: 600000,
+        audioBitsPerSecond: 64000
+      });
+    }
+    catch(e) {
+      try {
+        this.recorder = new MediaRecorder(stream, {
+          mimeType: "video/webm; codecs=vp8,vorbis",
+          videoBitsPerSecond: 600000,
+          audioBitsPerSecond: 64000
+        });
+      }
+      catch(e) {
+        alert("MediaRecorder作成に失敗しました。");
+        return false;
+      }
+    }
     // データ生成時のcallback
     this.recorder.ondataavailable = (event) => {
       // 本当にデータの中身があるか確認
       if(event.data.size > 0) {
         this.saveSize += event.data.size;
-        // blobのままだと転送できないのでArrayBuffer -> Uint8Arrayにする
-        var fr = new FileReader();
-        fr.onloadend = (ev) => {
-          ipcRenderer.send(this.name + "append", new Uint8Array(fr.result));
-        };
-        fr.readAsArrayBuffer(event.data as Blob);
+        if(location.protocol.match(/^http/)) {
+          this.data.push(event.data as Blob);
+        }
+        else {
+          // blobのままだと転送できないのでArrayBuffer -> Uint8Arrayにする
+          var fr = new FileReader();
+          fr.onloadend = (ev) => {
+            ipcRenderer.send(this.name + "append", new Uint8Array(fr.result));
+          };
+          fr.readAsArrayBuffer(event.data as Blob);
+        }
       }
       // データのcallbackがきたら、保存情報を更新してやる
       this.event.onProcess({
@@ -143,12 +179,20 @@ export class WebmFile implements IOutputPlugin {
     return true;
   }
   public _finishRecording() {
+    var genAddress = "";
+    if(location.protocol.match(/^http/)) {
+      var genData = new Blob(this.data, {type: "video/webm"});
+      // あとは終わった時にこのリンクを出せばよい。
+      // どうやって出せばいいんだろう・・・
+      console.log(window.URL.createObjectURL(genData));
+      genAddress = window.URL.createObjectURL(genData);
+    }
     if(this.recorder) {
       this.recorder.stop();
       this.recorder = null;
     }
     if(this.event) {
-      this.event.onStop();
+      this.event.onStop(genAddress);
     }
   }
 }

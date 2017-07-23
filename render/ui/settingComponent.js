@@ -18,7 +18,10 @@ var FormGroup = ReactBootstrap.FormGroup;
 var Navbar = ReactBootstrap.Navbar;
 var Button = ReactBootstrap.Button;
 var electron = require("electron");
-var dialog = electron.remote.dialog;
+var dialog = null;
+if (electron) {
+    dialog = electron.remote.dialog;
+}
 // 出力の部分にある保存動作のGUI処理
 exports.settingComponent = function (webmFile) {
     return (function (_super) {
@@ -33,21 +36,26 @@ exports.settingComponent = function (webmFile) {
         SettingComponent.prototype.file = function () {
             var _this = this;
             // ファイル選択ダイアログ処理
-            dialog.showSaveDialog(null, {
-                title: "save",
-                defaultPath: ".",
-                filters: [
-                    { name: "webm movie file", extensions: ["webm"] }
-                ]
-            }, function (filename) {
-                // ここにデータを保存する
-                // 保存してたら、停止する
-                if (!filename) {
-                    return;
-                }
-                webmFile._finishRecording();
-                _this.setState({ file: filename });
-            });
+            if (location.protocol.match(/^http/)) {
+                alert("ファイル保存動作はstandaloneでのみ動作します。");
+            }
+            else {
+                dialog.showSaveDialog(null, {
+                    title: "save",
+                    defaultPath: ".",
+                    filters: [
+                        { name: "webm movie file", extensions: ["webm"] }
+                    ]
+                }, function (filename) {
+                    // ここにデータを保存する
+                    // 保存してたら、停止する
+                    if (!filename) {
+                        return;
+                    }
+                    webmFile._finishRecording();
+                    _this.setState({ file: filename });
+                });
+            }
         };
         SettingComponent.prototype.toggleSave = function () {
             // 保存ボタンがおされたときの処理
@@ -65,8 +73,8 @@ exports.settingComponent = function (webmFile) {
             // 更新情報がきたので、更新しなければならない
             this.setState(info);
         };
-        SettingComponent.prototype.onStop = function () {
-            this.setState({ file: "", recording: false });
+        SettingComponent.prototype.onStop = function (genAddress) {
+            this.setState({ file: genAddress, recording: false });
         };
         SettingComponent.prototype.render = function () {
             return (React.createElement("div", null,
@@ -79,12 +87,25 @@ exports.settingComponent = function (webmFile) {
                     React.createElement(Navbar.Text, null,
                         (function (file) {
                             // ファイル名を表示する
-                            var matches = file.match(/[^/]+$/);
-                            if (matches != null && matches.length > 0) {
-                                return matches[0];
+                            if (location.protocol.match(/^http/)) {
+                                if (file == "") {
+                                    return "";
+                                }
+                                else {
+                                    // downloadのリンクを出す動作
+                                    return React.createElement("a", { href: file, target: "_blank" },
+                                        "download ",
+                                        file);
+                                }
                             }
                             else {
-                                return "";
+                                var matches = file.match(/[^/]+$/);
+                                if (matches != null && matches.length > 0) {
+                                    return matches[0];
+                                }
+                                else {
+                                    return "";
+                                }
                             }
                         })(this.state.file),
                         React.createElement("br", null),
