@@ -9,7 +9,6 @@
   "author": "taktod",
   "license": "BSD-3-Clause",
   "devDependencies": {
-    "@types/electron": "^1.4.38",
     "@types/node": "^7.0.22",
     "@types/react": "^15.0.25",
     "@types/react-bootstrap": "0.0.49",
